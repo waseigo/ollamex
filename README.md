@@ -10,6 +10,7 @@ Ollamex is written based on the [ollama REST API documentation](https://github.c
 * [Generate a completion](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-a-completion)
 * [Generate a chat completion](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-a-chat-completion)
 
+The [primary motivation](https://overbring.com/blog/2024-01-10-ollamex-ollama-api-elixir-released/) for this simple Elixir wrapper was to use a timeout and avoid situations in which the LLM gets stuck generating a stream of `\n`, `\t` and whitespace.
 
 ## Installation
 
