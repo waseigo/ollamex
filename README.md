@@ -9,6 +9,7 @@ Ollamex is written based on the [ollama REST API documentation](https://github.c
 * [List Local Models](https://github.com/jmorganca/ollama/blob/main/docs/api.md#list-local-models)
 * [Generate a completion](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-a-completion)
 * [Generate a chat completion](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-a-chat-completion)
+* [Generate embeddings](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-embeddings) (**new** since v0.2.0)
 
 The [primary motivation](https://overbring.com/blog/2024-01-10-ollamex-ollama-api-elixir-released/) for this simple Elixir wrapper was to use a timeout and avoid situations in which the LLM gets stuck generating a stream of `\n`, `\t` and whitespace.
 
@@ -19,7 +20,7 @@ The package is [available in Hex](https://hex.pm/packages/ollamex) and can be in
 ```elixir
 def deps do
   [
-    {:ollamex, "~> 0.1.0"}
+    {:ollamex, "~> 0.2.0"}
   ]
 end
 ```
