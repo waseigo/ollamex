@@ -88,7 +88,7 @@ defmodule Ollamex do
     model: "mistral:latest",
     prompt_eval_count: 33,
     prompt_eval_duration: 2865358000,
-    response: " The sky isn't black like space because it has ...
+    response: " The sky isn't black like space because it has [...]
     pretty colors, and nighttime with stars and the moon!",
     total_duration: 24862993618,
     message: nil,
@@ -96,7 +96,7 @@ defmodule Ollamex do
   }}
   ```
 
-  ### Generate a chat completion
+  ### Generate a chat completion (`/chat` endpoint)
 
   ```elixir
   messages =
@@ -147,16 +147,46 @@ defmodule Ollamex do
     response: nil,
     total_duration: 95606709630,
     message: %{
-      content: "Mie scattering is ... while Rayleigh scattering
+      content: "Mie scattering is [...] while Rayleigh scattering
       is responsible for the reddening of sunlight at sunrise
       and sunset.",
       role: "assistant"
     },
     errors: nil
   }}
-
   ```
 
+  ### Generate embeddings (`/embeddings` endpoint)
+
+  ```elixir
+  iex> p = %Ollamex.PromptRequest{model: "llama2", prompt: "Explain the main features and benefits of the Elixir programming language in a single, concise paragraph."}
+  %Ollamex.PromptRequest{
+    model: "llama2",
+    prompt: "Explain the main features and benefits of the Elixir programming language in a single, concise paragraph.",
+    raw: false,
+    format: nil,
+    stream: true,
+    options: nil,
+    images: []
+  }
+  iex> Ollamex.embeddings(p, api)
+  %Ollamex.LLMResponse{
+    context: nil,
+    created_at: nil,
+    done: nil,
+    eval_count: nil,
+    eval_duration: nil,
+    model: "llama2",
+    prompt_eval_count: nil,
+    prompt_eval_duration: nil,
+    response: nil,
+    total_duration: nil,
+    message: nil,
+    embedding: [-1.6268974542617798, -1.4279855489730835, -0.46105068922042847,
+    0.7557640671730042, -0.17748284339904785, ...],
+    errors: nil
+  }
+  ```
   """
   @moduledoc since: "0.1.0"
 
@@ -231,6 +261,7 @@ defmodule Ollamex do
   def embeddings(%PromptRequest{} = request, %API{} = api) do
     r = prompt(request, "embeddings", api)
     %LLMResponse{errors: errors} = r
+
     case errors do
       nil -> %{r | model: request.model}
       _ -> r
@@ -241,7 +272,6 @@ defmodule Ollamex do
   Same functionality as `embeddings/2`, but will shutdown the task after the provided `timeout` (in milliseconds, default value `120_000`).
   """
   @doc since: "0.2.0"
-
   def embeddings_with_timeout(%PromptRequest{} = request, %API{} = api, timeout \\ 120_000)
       when is_integer(timeout) do
     Helpers.create_task(&embeddings/2, [request, api])
