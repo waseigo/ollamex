@@ -18,6 +18,7 @@ defmodule Ollamex.LLMResponse do
     :response,
     :total_duration,
     :message,
+    :embedding,
     :errors
   ]
 end

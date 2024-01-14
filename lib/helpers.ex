@@ -9,24 +9,58 @@ defmodule Ollamex.Helpers do
 
   alias Ollamex.LLMResponse
 
+  defp at_least_one(key, r) when is_list(r) and is_bitstring(key) do
+    r
+    |> Enum.filter(fn x -> key in Map.keys(x) end)
+    |> length()
+    |> Kernel.>(0)
+  end
+
   @doc """
-  Determines whether a list of `%Ollamex.LLMResponse{}` structs (only one item if `stream: false`, more than one item if `stream: true` in the request) came from the `/chat` or the `/generate` endpoint.
+  Because the body of the responses of the `/generate`, `/chat` and `/embeddings` endpoints of the Ollama REST API return different data structures, this helper function detects the endpoint from which a list of responses originated.
   """
-  @doc since: "0.1.0"
-  def is_chat?(responses) when is_list(responses) do
-    responses
-    |> Enum.filter(fn r -> is_nil(r.message["content"]) end)
-    |> Kernel.==(responses)
-    |> Kernel.not()
+  @doc since: "0.2.0"
+  def detect_endpoint(r) when is_list(r) do
+    lookup = %{
+      "response" => :generate,
+      "message" => :chat,
+      "embedding" => :embeddings
+    }
+
+    lookup
+    |> Map.keys()
+    |> Enum.map(&at_least_one(&1, r))
+    |> Enum.find_index(&(&1 == true))
+    |> (&Enum.at(Map.values(lookup), &1)).()
+  end
+
+  def handle_response(body) do
+    r =
+      body
+      |> Enum.map(&Jason.decode!(&1))
+      |> Enum.to_list()
+
+    case detect_endpoint(r) do
+      :generate ->
+        r |> consolidate_responses()
+
+      :chat ->
+        r |> consolidate_responses()
+
+      :embeddings ->
+        %{%LLMResponse{} | embedding: hd(r)["embedding"]}
+    end
   end
 
   @doc """
   Consolidates a list of `%Ollamex.LLMResponse{}` structs into a single response, dealing with `stream: false` and `stream: true`, regardless of the origin of the responses (`/chat` or `/generate`).
   """
   @doc since: "0.1.0"
-  def consolidate_responses(responses_list) when is_list(responses_list) do
+  def consolidate_responses(r) when is_list(r) do
+    rs = r |> Enum.map(&map_to_struct(&1, LLMResponse))
+
     response_done =
-      responses_list
+      rs
       |> Enum.filter(fn %LLMResponse{done: done} -> done end)
 
     case Enum.empty?(response_done) do
@@ -34,13 +68,13 @@ defmodule Ollamex.Helpers do
         {:error, "Streamed response was never done."}
 
       false ->
-        if is_chat?(responses_list) do
+        if detect_endpoint(r) == :chat do
           %{
             hd(response_done)
-            | message: %{role: "assistant", content: extract_messages(responses_list)}
+            | message: %{role: "assistant", content: extract_messages(rs)}
           }
         else
-          %{hd(response_done) | response: extract_responses(responses_list)}
+          %{hd(response_done) | response: extract_responses(rs)}
         end
     end
   end
@@ -49,8 +83,8 @@ defmodule Ollamex.Helpers do
   Extracts the chat message fragments from a list of `%Ollamex.LLMResponse{}` from the `/chat` endpoint and concatenates them into a string.
   """
   @doc since: "0.1.0"
-  def extract_messages(responses_list) when is_list(responses_list) do
-    responses_list
+  def extract_messages(r) when is_list(r) do
+    r
     |> Enum.map(fn r ->
       if is_nil(r.message) do
         ""
@@ -65,8 +99,8 @@ defmodule Ollamex.Helpers do
   Extracts the response fragments from a list of `%Ollamex.LLMResponse{}` from the `/generate` endpoint and concatenates them into a string.
   """
   @doc since: "0.1.0"
-  def extract_responses(responses_list) when is_list(responses_list) do
-    responses_list
+  def extract_responses(r) when is_list(r) do
+    r
     |> Enum.map(fn r -> r.response end)
     |> List.to_string()
   end

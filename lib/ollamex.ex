@@ -10,8 +10,9 @@ defmodule Ollamex do
   * [List Local Models](https://github.com/jmorganca/ollama/blob/main/docs/api.md#list-local-models)
   * [Generate a completion](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-a-completion)
   * [Generate a chat completion](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-a-chat-completion)
+  * [Generate embeddings](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-embeddings)
 
-
+  Tested with ollama version 0.1.20.
 
   ## Examples
 
@@ -178,11 +179,7 @@ defmodule Ollamex do
         %LLMResponse{errors: reason}
 
       {:ok, %Req.Response{status: 200, body: body}} ->
-        body
-        |> Stream.map(&Jason.decode!(&1))
-        |> Stream.map(&Helpers.map_to_struct(&1, LLMResponse))
-        |> Enum.to_list()
-        |> Helpers.consolidate_responses()
+        Helpers.handle_response(body)
     end
   end
 
@@ -224,6 +221,30 @@ defmodule Ollamex do
   def chat_with_timeout(%ChatRequest{} = request, %API{} = api, timeout \\ 120_000)
       when is_integer(timeout) do
     Helpers.create_task(&chat/2, [request, api])
+    |> Helpers.yield_or_timeout_and_shutdown(timeout)
+  end
+
+  @doc """
+  [Generate embeddings](https://github.com/jmorganca/ollama/blob/main/docs/api.md#generate-embeddings) from an LLM using the `/embeddings` endpoint of the ollama API.
+  """
+  @doc since: "0.2.0"
+  def embeddings(%PromptRequest{} = request, %API{} = api) do
+    r = prompt(request, "embeddings", api)
+    %LLMResponse{errors: errors} = r
+    case errors do
+      nil -> %{r | model: request.model}
+      _ -> r
+    end
+  end
+
+  @doc """
+  Same functionality as `embeddings/2`, but will shutdown the task after the provided `timeout` (in milliseconds, default value `120_000`).
+  """
+  @doc since: "0.2.0"
+
+  def embeddings_with_timeout(%PromptRequest{} = request, %API{} = api, timeout \\ 120_000)
+      when is_integer(timeout) do
+    Helpers.create_task(&embeddings/2, [request, api])
     |> Helpers.yield_or_timeout_and_shutdown(timeout)
   end
 end
