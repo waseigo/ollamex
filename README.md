@@ -26,7 +26,15 @@ end
 ```
 
 ## Documentation 
+
 The docs can be found at <https://hexdocs.pm/ollamex>.
 
 ## Homepage
+
 The homepage of Ollamex can be found at [overbring.com](https://overbring.com/software/ollamex).
+
+## Donate
+
+Has this library been useful for your project? 
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V119L07A)
